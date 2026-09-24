@@ -27,9 +27,15 @@ A hobby web app that reads the Open-Meteo forecast and tells you whether it's a 
 - The reminder under the verdict and the full disclaimer section: hobby project, the captain decides, no liability, use at your own risk.
 - The Open-Meteo attribution in the footer.
 
+## Hosting
+- Public repo: https://github.com/sorvaes/sailing-oracle
+- Live on GitHub Pages from the `main` branch: https://sorvaes.github.io/sailing-oracle/
+- A push to `main` rebuilds the site in about a minute.
+
 ## Plans
-- Host on GitHub Pages and link to it from Esko's WordPress site.
+- Link to the live site from Esko's WordPress site.
 
 ## Working style
 - Esko is learning Claude Code: explain each change briefly.
-- Commit after each working change.
+- Commit after each working change, then push to publish it.
+- Commits use the name `sorvaes` and the GitHub noreply address, set for this repo only. Never commit with a personal or work email.
