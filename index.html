@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sailing Oracle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&family=Source+Serif+4:ital,wght@1,400&display=swap">
+<style>
+:root{
+  --paper:#EDF4F6;
+  --shallow:#CBE3EC;
+  --contour:#86B3C6;
+  --ink:#14324B;
+  --ink-soft:#4A6479;
+  --surface:#FAFDFE;
+  --line:#B6CFD9;
+  --go:#2C7A4E;
+  --caution:#E6B31E;
+  --stay:#BF3A2D;
+  --on-go:#FFFFFF;
+  --on-caution:#1C2833;
+  --on-stay:#FFFFFF;
+  --display:"Barlow Condensed","Arial Narrow","Helvetica Neue",Arial,sans-serif;
+  --body:"Barlow","Helvetica Neue",Arial,sans-serif;
+  --chart:"Source Serif 4",Georgia,"Times New Roman",serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E2130; --shallow:#1B3C52; --contour:#28536C; --ink:#E4EEF2; --ink-soft:#9DB5C3;
+    --surface:#132B3D; --line:#2B4B60; --go:#3A9A64; --caution:#E9BD30; --stay:#D8503F;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E2130; --shallow:#1B3C52; --contour:#28536C; --ink:#E4EEF2; --ink-soft:#9DB5C3;
+  --surface:#132B3D; --line:#2B4B60; --go:#3A9A64; --caution:#E9BD30; --stay:#D8503F;
+}
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none !important}
+html{background:var(--paper);scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+.contours{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;color:var(--contour);opacity:.55}
+.contours path{fill:none;stroke:currentColor;stroke-width:1.2}
+.contours .dotted{stroke-dasharray:1 6;stroke-linecap:round;stroke-width:2}
+
+.wrap{position:relative;z-index:1;max-width:560px;margin:0 auto;padding:28px 20px 40px}
+h1{font-family:var(--display);font-weight:700;font-size:36px;line-height:1.05;margin:0}
+.lede{margin:4px 0 0;color:var(--ink-soft)}
+
+.places{display:flex;gap:8px;overflow-x:auto;margin:18px -20px 0;padding:3px 20px 6px;scrollbar-width:none}
+.places::-webkit-scrollbar{display:none}
+.place{flex:0 0 auto;font-family:var(--chart);font-style:italic;font-size:18px;line-height:1.2;padding:7px 16px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.place[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+
+.days{display:flex;gap:6px;overflow-x:auto;margin:12px -20px 0;padding:3px 20px 6px;scrollbar-width:none}
+.days::-webkit-scrollbar{display:none}
+.day{flex:0 0 auto;min-width:62px;display:flex;flex-direction:column;align-items:center;gap:1px;font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:7px 8px 8px;cursor:pointer}
+.day[aria-pressed="true"]{background:var(--shallow);border-color:var(--ink)}
+.day .dow{font-size:13px;font-weight:600;color:var(--ink-soft)}
+.day .dnum{font-family:var(--display);font-weight:700;font-size:24px;line-height:1.05}
+.day .mon{font-size:12px;color:var(--ink-soft)}
+.day .dot{width:10px;height:10px;border-radius:50%;margin-top:4px;background:var(--line)}
+.day .dot[data-mark="go"]{background:var(--go)}
+.day .dot[data-mark="caution"]{background:var(--caution)}
+.day .dot[data-mark="stay"]{background:var(--stay)}
+
+.verdict{position:relative;margin:20px 0 6px;padding:28px 24px 26px;min-height:196px;border-radius:6px;background:var(--mark-bg);color:var(--mark-fg);transition:background-color .35s ease}
+.verdict[data-mark="go"]{--mark-bg:var(--go);--mark-fg:var(--on-go)}
+.verdict[data-mark="caution"]{--mark-bg:var(--caution);--mark-fg:var(--on-caution)}
+.verdict[data-mark="stay"]{--mark-bg:var(--stay);--mark-fg:var(--on-stay)}
+.verdict[data-mark="neutral"]{--mark-bg:var(--ink);--mark-fg:var(--paper)}
+.topmark{position:absolute;top:24px;right:22px;width:34px;height:34px}
+.word{font-family:var(--display);font-weight:700;font-size:clamp(50px,14vw,78px);line-height:.95;letter-spacing:-.01em;margin:0 52px 14px 0}
+.reason{margin:0;font-size:18px;line-height:1.45;max-width:32em}
+@keyframes reveal{from{opacity:.3;transform:translateY(8px)}to{opacity:1;transform:none}}
+.verdict.reveal .word{animation:reveal .45s cubic-bezier(.2,.7,.2,1)}
+
+.conditions{margin:14px 0 0;padding:0}
+.conditions>div{display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:11px 0;border-bottom:1px solid var(--line)}
+.conditions dt{color:var(--ink-soft);font-weight:500}
+.conditions dd{margin:0;text-align:right;white-space:nowrap}
+.num{font-family:var(--display);font-weight:600;font-size:30px;line-height:1}
+.dir{display:inline-flex;align-items:center;gap:5px;margin-left:8px;color:var(--ink-soft);font-weight:600}
+.dir svg{width:18px;height:18px;transition:transform .35s ease}
+
+.status{margin:14px 0 0;font-size:15px;color:var(--ink-soft);max-width:36em}
+.toggle{margin-top:18px;font:inherit;font-weight:600;color:var(--ink);background:transparent;border:1.5px solid var(--ink);border-radius:999px;padding:10px 18px;cursor:pointer}
+
+.whatif{margin-top:16px;padding:18px 18px 8px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.field{display:grid;grid-template-columns:1fr auto;align-items:baseline;gap:2px 12px;margin-bottom:14px}
+.field label{font-weight:500}
+.field output{font-family:var(--display);font-weight:600;font-size:21px}
+.field input[type=range]{grid-column:1/-1;width:100%;margin:6px 0 0;accent-color:var(--ink)}
+.extras{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;margin-bottom:12px}
+.extras label{display:flex;align-items:center;gap:10px;font-weight:500}
+.extras select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:5px 8px}
+.extras input[type=checkbox]{width:20px;height:20px;accent-color:var(--ink)}
+
+.foot{margin-top:36px;font-size:14px;color:var(--ink-soft)}
+.foot a{color:inherit}
+.reminder{margin:8px 0 0;font-size:14px;font-weight:600;color:var(--ink-soft)}
+.disclaimer{margin-top:36px;padding:16px 18px;border-left:4px solid var(--stay);background:var(--surface);border-radius:0 6px 6px 0;font-size:15px}
+.disclaimer h2{font-family:var(--display);font-weight:700;font-size:22px;line-height:1.1;margin:0 0 8px;color:var(--ink)}
+.disclaimer p{margin:0 0 10px;color:var(--ink)}
+.disclaimer p:last-child{margin-bottom:0}
+.disclaimer a{color:inherit}
+
+@media (prefers-reduced-motion: reduce){
+  .verdict,.dir svg{transition:none}
+  .verdict.reveal .word{animation:none}
+}
+</style>
+</head>
+<body>
+<svg class="contours" aria-hidden="true" viewBox="0 0 400 900" preserveAspectRatio="xMidYMid slice">
+  <path d="M-20 110 C 60 80, 120 150, 210 120 S 360 60, 430 100"/>
+  <path d="M-20 160 C 70 130, 140 205, 230 170 S 370 115, 430 150"/>
+  <path class="dotted" d="M-20 225 C 80 195, 150 270, 250 230 S 380 180, 430 215"/>
+  <path d="M-20 620 C 50 650, 130 590, 220 630 S 350 700, 430 660"/>
+  <path d="M-20 680 C 60 710, 150 650, 240 690 S 360 755, 430 715"/>
+  <path class="dotted" d="M-20 750 C 70 780, 160 720, 260 760 S 380 820, 430 785"/>
+</svg>
+
+<main class="wrap">
+  <header>
+    <h1>Sailing Oracle</h1>
+    <p class="lede">Pick where you're setting off from.</p>
+  </header>
+
+  <div class="places" id="places" role="group" aria-label="Sailing spot"></div>
+
+  <div class="days" id="days" role="group" aria-label="Day" hidden></div>
+
+  <section class="verdict" id="verdict" data-mark="neutral" aria-live="polite">
+    <svg class="topmark" id="topmark" viewBox="0 0 40 40" aria-hidden="true"></svg>
+    <p class="word" id="word">Checking the forecast</p>
+    <p class="reason" id="reason">Reading the daytime hours for the spot you picked.</p>
+  </section>
+  <p class="reminder">A hobby guess, not a navigation aid. The captain always decides.</p>
+
+  <dl class="conditions">
+    <div><dt>Wind</dt><dd><span class="num" id="c-wind">–</span> m/s<span class="dir" id="c-dir"></span></dd></div>
+    <div><dt>Gusts up to</dt><dd><span class="num" id="c-gust">–</span> m/s</dd></div>
+    <div><dt>Rain chance</dt><dd><span class="num" id="c-rain">–</span>%</dd></div>
+    <div><dt>Air</dt><dd><span class="num" id="c-temp">–</span> °C</dd></div>
+  </dl>
+
+  <p class="status" id="status"></p>
+
+  <button type="button" class="toggle" id="toggle" aria-controls="whatif" aria-expanded="false">Try other conditions</button>
+
+  <section class="whatif" id="whatif" aria-label="Your own conditions" hidden>
+    <div class="field"><label for="m-wind">Average wind</label><output id="o-wind" for="m-wind"></output><input type="range" id="m-wind" min="0" max="20" step="0.5"></div>
+    <div class="field"><label for="m-gust">Strongest gust</label><output id="o-gust" for="m-gust"></output><input type="range" id="m-gust" min="0" max="28" step="0.5"></div>
+    <div class="field"><label for="m-rain">Rain chance</label><output id="o-rain" for="m-rain"></output><input type="range" id="m-rain" min="0" max="100" step="5"></div>
+    <div class="field"><label for="m-temp">Air temperature</label><output id="o-temp" for="m-temp"></output><input type="range" id="m-temp" min="-5" max="30" step="1"></div>
+    <div class="extras">
+      <label>Wind from
+        <select id="m-dir">
+          <option value="0">N</option><option value="45">NE</option><option value="90">E</option><option value="135">SE</option>
+          <option value="180">S</option><option value="225">SW</option><option value="270">W</option><option value="315">NW</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="m-thunder"> Thunderstorms</label>
+    </div>
+  </section>
+
+  <section class="disclaimer" aria-labelledby="disclaimer-title">
+    <h2 id="disclaimer-title">Hobby project. Use at your own risk.</h2>
+    <p>The Sailing Oracle is a personal hobby project made for fun. It is not a navigation aid, a marine forecast or professional advice of any kind.</p>
+    <p>Its verdicts come from a general weather forecast and simple rules of thumb. They can be wrong, out of date or unsuitable for your boat, crew, skills and waters. Do not trust the forecast or the suggestions blindly. Always check official marine forecasts and warnings, such as those from the <a href="https://en.ilmatieteenlaitos.fi/">Finnish Meteorological Institute</a>, and use your own judgement.</p>
+    <p>The final decision to sail, and the responsibility for it, always lies with the captain.</p>
+    <p>The app is provided as is, without any warranty. Its creator accepts no liability whatsoever for any loss, damage or injury arising from its use. Everyone uses it entirely at their own risk.</p>
+  </section>
+
+  <footer class="foot">
+    <p>Verdicts assume a cruising yacht and daytime sailing, 08–22. Weather data by <a href="https://open-meteo.com/">Open-Meteo.com</a>.</p>
+  </footer>
+</main>
+
+<script>
+(function(){
+  var PLACES = [
+    {id:"turku",    name:"Turku",    lat:60.44, lon:22.20},
+    {id:"nauvo",    name:"Nauvo",    lat:60.19, lon:21.91},
+    {id:"korppoo",  name:"Korppoo",  lat:60.16, lon:21.56},
+    {id:"uto",      name:"Utö",      lat:59.78, lon:21.37},
+    {id:"hanko",    name:"Hanko",    lat:59.82, lon:22.97},
+    {id:"helsinki", name:"Helsinki", lat:60.15, lon:24.96}
+  ];
+  var HOURS = {from:8, to:22};
+  var DIRS = [["N","north"],["NE","northeast"],["E","east"],["SE","southeast"],["S","south"],["SW","southwest"],["W","west"],["NW","northwest"]];
+  // Buoy topmarks: green cone = go, red can = stay, yellow cross = caution
+  var TOPMARKS = {
+    go:'<path d="M20 5 L35 33 L5 33 Z" fill="currentColor"/>',
+    stay:'<rect x="8" y="7" width="24" height="26" fill="currentColor"/>',
+    caution:'<path d="M9 9 L31 31 M31 9 L9 31" stroke="currentColor" stroke-width="6"/>',
+    neutral:'<circle cx="20" cy="20" r="12" fill="none" stroke="currentColor" stroke-width="4"/>'
+  };
+
+  function $(id){ return document.getElementById(id); }
+  var els = {
+    places:$("places"), days:$("days"), verdict:$("verdict"), topmark:$("topmark"),
+    word:$("word"), reason:$("reason"), wind:$("c-wind"), dir:$("c-dir"),
+    gust:$("c-gust"), rain:$("c-rain"), temp:$("c-temp"),
+    status:$("status"), toggle:$("toggle"), whatif:$("whatif")
+  };
+  var inputs = {wind:$("m-wind"), gust:$("m-gust"), rain:$("m-rain"), temp:$("m-temp"), dir:$("m-dir"), thunder:$("m-thunder")};
+  var outs = {wind:$("o-wind"), gust:$("o-gust"), rain:$("o-rain"), temp:$("o-temp")};
+
+  function readStore(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function writeStore(k,v){ try { localStorage.setItem(k,v); } catch(e){} }
+
+  var saved = readStore("oracle-place");
+  var state = {
+    place: PLACES.some(function(p){ return p.id === saved; }) ? saved : "nauvo",
+    day: 0,
+    mode: "live",        // "live" = forecast, "manual" = your own conditions
+    userManual: false,   // true when the viewer chose manual mode themselves
+    liveFailed: false,
+    loading: false,
+    manual: {wind:6, gust:9, rain:20, temp:16, dir:225, thunder:false}
+  };
+  var cache = {};
+  var loadToken = 0;
+  var lastWord = "";
+
+  function place(){ return PLACES.find(function(p){ return p.id === state.place; }); }
+  function fmt(n){ return n < 10 ? (Math.round(n*10)/10).toFixed(1) : String(Math.round(n)); }
+  function compass(deg){ return DIRS[Math.round((((deg % 360) + 360) % 360) / 45) % 8]; }
+  function fmtDate(s){
+    var p = s.split("-").map(Number);
+    return new Date(p[0], p[1]-1, p[2]).toLocaleDateString("en-GB", {weekday:"short", day:"numeric", month:"short"});
+  }
+  function datesOf(data){
+    var seen = [];
+    data.hourly.time.forEach(function(t){ var d = t.slice(0,10); if (seen.indexOf(d) < 0) seen.push(d); });
+    return seen;
+  }
+  function clamp(v,lo,hi){ return Math.min(hi, Math.max(lo, v)); }
+
+  // ---- Data ----
+  function fetchForecast(p){
+    var params = new URLSearchParams({
+      latitude: p.lat, longitude: p.lon,
+      hourly: "temperature_2m,precipitation_probability,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m,visibility",
+      wind_speed_unit: "ms", timezone: "Europe/Helsinki", forecast_days: "8"
+    });
+    var ctrl = new AbortController();
+    var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+    return fetch("https://api.open-meteo.com/v1/forecast?" + params, {signal: ctrl.signal})
+      .then(function(res){ if (!res.ok) throw new Error("HTTP " + res.status); return res.json(); })
+      .then(function(json){ if (!json.hourly || !json.hourly.time) throw new Error("No hourly data"); return json; })
+      .finally(function(){ clearTimeout(timer); });
+  }
+
+  function summarise(data, day){
+    var h = data.hourly, date = datesOf(data)[day];
+    if (!date) return null;
+    var idx = [];
+    h.time.forEach(function(t,i){
+      var hr = +t.slice(11,13);
+      if (t.slice(0,10) === date && hr >= HOURS.from && hr <= HOURS.to) idx.push(i);
+    });
+    function pick(k){ return idx.map(function(i){ return h[k] ? h[k][i] : null; }).filter(function(v){ return typeof v === "number"; }); }
+    function mean(a){ return a.reduce(function(s,v){ return s+v; }, 0) / a.length; }
+    var winds = pick("wind_speed_10m");
+    if (!winds.length) return null;
+    var gusts = pick("wind_gusts_10m"), rains = pick("precipitation_probability"),
+        temps = pick("temperature_2m"), codes = pick("weather_code"), vis = pick("visibility");
+    // Speed-weighted average direction
+    var x = 0, y = 0;
+    idx.forEach(function(i){
+      var s = h.wind_speed_10m[i] || 0;
+      var d = ((h.wind_direction_10m && h.wind_direction_10m[i]) || 0) * Math.PI / 180;
+      x += s * Math.sin(d); y += s * Math.cos(d);
+    });
+    return {
+      wind: mean(winds),
+      gust: gusts.length ? Math.max.apply(null, gusts) : mean(winds),
+      dir: (Math.atan2(x, y) * 180 / Math.PI + 360) % 360,
+      rain: rains.length ? Math.max.apply(null, rains) : null,
+      temp: temps.length ? mean(temps) : null,
+      thunder: codes.some(function(c){ return c >= 95; }),
+      vis: vis.length ? Math.min.apply(null, vis) : null
+    };
+  }
+
+  // ---- The oracle ----
+  function judge(c){
+    var w = c.wind, g = Math.max(c.gust, c.wind), full = compass(c.dir)[1], v;
+    if (c.thunder) {
+      v = {mark:"stay", word:"Stay in harbour.", reason:"Thunderstorms are forecast. Not a day to be the tallest thing on the water."};
+    } else if (g >= 16 || w >= 12) {
+      v = {mark:"stay", word:"Stay in harbour.", reason: fmt(w) + " m/s from the " + full + ", gusting " + fmt(g) + ". Let someone else test their reefing lines."};
+    } else if (w >= 9 || g >= 13) {
+      v = {mark:"caution", word:"Reef early.", reason:"A fresh " + fmt(w) + " m/s from the " + full + ", gusting " + fmt(g) + ". Fine for a practised crew with a reef in."};
+    } else if (w < 2.5) {
+      v = {mark:"caution", word:"Bring a paddle.", reason:"Barely " + fmt(w) + " m/s of wind. Expect to drift, or to motor."};
+    } else {
+      v = {mark:"go", word:"Go sailing.", reason: fmt(w) + " m/s from the " + full + (g - w >= 3 ? ", gusting " + fmt(g) : "") + ". A proper sailing breeze."};
+    }
+    if (v.mark === "go" && c.rain != null && c.rain >= 60) {
+      v = {mark:"caution", word:"Go, in oilskins.", reason: fmt(w) + " m/s from the " + full + " is good sailing wind, but rain is " + Math.round(c.rain) + "% likely."};
+    }
+    if (v.mark !== "stay" && c.vis != null && c.vis < 1000) {
+      v = {mark:"caution", word:"Mind the fog.", reason:"Visibility may drop to about " + Math.max(100, Math.round(c.vis/100)*100) + " m. Keep a sharp lookout near the fairways."};
+    }
+    if (v.mark !== "stay" && c.temp != null && c.temp < 8) {
+      v.reason += " Dress warm: only " + Math.round(c.temp) + " °C.";
+    }
+    return v;
+  }
+
+  // ---- Rendering ----
+  var placeButtons = PLACES.map(function(p){
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "place"; b.dataset.id = p.id; b.textContent = p.name;
+    b.addEventListener("click", function(){ choosePlace(p.id); });
+    els.places.appendChild(b);
+    return b;
+  });
+
+  function setVerdict(v){
+    els.verdict.dataset.mark = v.mark;
+    els.topmark.innerHTML = TOPMARKS[v.mark];
+    els.word.textContent = v.word;
+    els.reason.textContent = v.reason;
+    if (v.word !== lastWord) {
+      els.verdict.classList.remove("reveal");
+      void els.verdict.offsetWidth;
+      els.verdict.classList.add("reveal");
+      lastWord = v.word;
+    }
+  }
+
+  function setConditions(c){
+    if (!c) {
+      els.wind.textContent = els.gust.textContent = els.rain.textContent = els.temp.textContent = "–";
+      els.dir.innerHTML = "";
+      return;
+    }
+    var short = compass(c.dir)[0];
+    var rot = Math.round((c.dir + 180) % 360); // arrow points where the wind blows to
+    els.wind.textContent = fmt(c.wind);
+    els.dir.innerHTML = short + ' <svg viewBox="0 0 20 20" aria-hidden="true" style="transform:rotate(' + rot + 'deg)"><path d="M10 1.5 L15.5 10 H11.8 V18.5 H8.2 V10 H4.5 Z" fill="currentColor"/></svg>';
+    els.gust.textContent = fmt(Math.max(c.gust, c.wind));
+    els.rain.textContent = c.rain == null ? "–" : Math.round(c.rain);
+    els.temp.textContent = c.temp == null ? "–" : Math.round(c.temp);
+  }
+
+  function render(){
+    placeButtons.forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.id === state.place)); });
+    var data = cache[state.place];
+    var live = state.mode === "live";
+
+    els.days.hidden = !(live && data);
+    if (data) renderDays(data);
+
+    els.whatif.hidden = live;
+    els.toggle.textContent = live ? "Try other conditions" : (state.liveFailed ? "Try the live forecast again" : "Back to the forecast");
+    els.toggle.setAttribute("aria-expanded", String(!live));
+
+    if (live && state.loading) {
+      setVerdict({mark:"neutral", word:"Checking the forecast", reason:"Reading the daytime hours at " + place().name + "."});
+      setConditions(null);
+      els.status.textContent = "";
+      return;
+    }
+
+    if (live) {
+      var c = data ? summarise(data, state.day) : null;
+      if (!c) {
+        setVerdict({mark:"neutral", word:"No forecast yet", reason:"There's no daytime data for this day. Try the other day or another spot."});
+        setConditions(null);
+        els.status.textContent = "";
+        return;
+      }
+      setVerdict(judge(c));
+      setConditions(c);
+      els.status.textContent = fmtDate(datesOf(data)[state.day]) + ": average wind and strongest gust between " + HOURS.from + " and " + HOURS.to + " at " + place().name + ", from Open-Meteo. Forecasts further out are less certain.";
+    } else {
+      var m = Object.assign({}, state.manual, {vis:null});
+      setVerdict(judge(m));
+      setConditions(m);
+      els.status.textContent = state.liveFailed
+        ? "The live forecast couldn't be reached. Pages hosted inside Claude can't contact outside websites, so open this file in your own browser for real weather. Until then, set the conditions below."
+        : "Showing the conditions you set, not the forecast.";
+    }
+  }
+
+  var daysFor = null;
+  function renderDays(data){
+    var ds = datesOf(data);
+    if (state.day >= ds.length) state.day = 0;
+    if (daysFor !== data) {
+      // Rebuild the strip only when the place's forecast changes, so focus stays put
+      daysFor = data;
+      els.days.innerHTML = "";
+      ds.forEach(function(s, d){
+        var p = s.split("-").map(Number), dt = new Date(p[0], p[1]-1, p[2]);
+        var c = summarise(data, d);
+        var mark = c ? judge(c).mark : "none";
+        var dow = d === 0 ? "Today" : d === 1 ? "Tmrw" : dt.toLocaleDateString("en-GB", {weekday:"short"});
+        var b = document.createElement("button");
+        b.type = "button"; b.className = "day"; b.dataset.day = d;
+        b.setAttribute("aria-label", fmtDate(s) + (c ? ": " + judge(c).word : ""));
+        b.innerHTML = '<span class="dow">' + dow + '</span><span class="dnum">' + dt.getDate() + '</span>' +
+          '<span class="mon">' + dt.toLocaleDateString("en-GB", {month:"short"}) + '</span><span class="dot" data-mark="' + mark + '"></span>';
+        b.addEventListener("click", function(){ state.day = d; render(); });
+        els.days.appendChild(b);
+      });
+    }
+    els.days.querySelectorAll(".day").forEach(function(b){
+      b.setAttribute("aria-pressed", String(+b.dataset.day === state.day));
+    });
+  }
+
+  function syncInputs(){
+    var m = state.manual;
+    inputs.wind.value = m.wind; inputs.gust.value = m.gust;
+    inputs.rain.value = m.rain; inputs.temp.value = m.temp;
+    inputs.dir.value = String(m.dir); inputs.thunder.checked = m.thunder;
+    outs.wind.textContent = fmt(m.wind) + " m/s";
+    outs.gust.textContent = fmt(m.gust) + " m/s";
+    outs.rain.textContent = m.rain + "%";
+    outs.temp.textContent = m.temp + " °C";
+  }
+
+  function onInput(e){
+    var m = state.manual;
+    m.wind = +inputs.wind.value; m.gust = +inputs.gust.value;
+    m.rain = +inputs.rain.value; m.temp = +inputs.temp.value;
+    m.dir = +inputs.dir.value; m.thunder = inputs.thunder.checked;
+    if (m.gust < m.wind) { if (e.target === inputs.gust) m.wind = m.gust; else m.gust = m.wind; }
+    syncInputs();
+    render();
+  }
+
+  // ---- Actions ----
+  function load(){
+    var id = state.place;
+    if (cache[id]) {
+      loadToken++;
+      state.loading = false;
+      if (!state.userManual) state.mode = "live";
+      render();
+      return;
+    }
+    var token = ++loadToken;
+    state.loading = true;
+    render();
+    fetchForecast(place()).then(function(data){
+      cache[id] = data;
+      if (token !== loadToken) return;
+      state.liveFailed = false;
+      if (!state.userManual) state.mode = "live";
+      state.loading = false;
+      render();
+    }).catch(function(){
+      if (token !== loadToken) return;
+      state.liveFailed = true;
+      state.userManual = false;
+      state.mode = "manual";
+      state.loading = false;
+      render();
+    });
+  }
+
+  function choosePlace(id){
+    state.place = id;
+    writeStore("oracle-place", id);
+    load();
+  }
+
+  els.toggle.addEventListener("click", function(){
+    if (state.mode === "live") {
+      var data = cache[state.place];
+      var c = data ? summarise(data, state.day) : null;
+      if (c) {
+        state.manual = {
+          wind: clamp(Math.round(c.wind * 2) / 2, 0, 20),
+          gust: clamp(Math.round(Math.max(c.gust, c.wind) * 2) / 2, 0, 28),
+          rain: c.rain == null ? 20 : clamp(Math.round(c.rain / 5) * 5, 0, 100),
+          temp: c.temp == null ? 16 : clamp(Math.round(c.temp), -5, 30),
+          dir: (Math.round(c.dir / 45) % 8) * 45,
+          thunder: c.thunder
+        };
+      }
+      state.mode = "manual";
+      state.userManual = true;
+      syncInputs();
+      render();
+    } else if (state.liveFailed) {
+      state.mode = "live";
+      state.userManual = false;
+      load();
+    } else {
+      state.mode = "live";
+      state.userManual = false;
+      render();
+    }
+  });
+
+  Object.keys(inputs).forEach(function(k){
+    inputs[k].addEventListener("input", onInput);
+    inputs[k].addEventListener("change", onInput);
+  });
+
+  syncInputs();
+  load();
+})();
+</script>
+</body>
+</html>
