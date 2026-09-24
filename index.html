@@ -390,7 +390,7 @@ h1{font-family:var(--display);font-weight:700;font-size:36px;line-height:1.05;ma
       setVerdict(judge(m));
       setConditions(m);
       els.status.textContent = state.liveFailed
-        ? "The live forecast couldn't be reached. Pages hosted inside Claude can't contact outside websites, so open this file in your own browser for real weather. Until then, set the conditions below."
+        ? "The live forecast couldn't be reached. Check your connection and try again. Until then, set the conditions below."
         : "Showing the conditions you set, not the forecast.";
     }
   }
